@@ -1,28 +1,50 @@
 import os
 import subprocess
+import fitz  # This is PyMuPDF!
 from music21 import converter, chord
 import ollama
 
 # --- CONFIGURATION ---
-# Change this to the exact name of your PDF file!
 input_pdf = "test_song.pdf" 
-# Oemer will automatically create a file with this name:
-output_xml = input_pdf.replace(".pdf", ".musicxml") 
+temp_image = "temp_page_1.png"
+output_xml = "temp_page_1.musicxml" # Oemer will name its output this
 
 # ==========================================
-# STAGE 1: THE VISION LAYER (PDF -> MusicXML)
+# STAGE 0: THE BRIDGE (PDF -> High-Res Image)
 # ==========================================
 print("-" * 30)
-print(f"STAGE 1: Scanning '{input_pdf}' with AI Vision...")
-print("Please wait. (This may take a few minutes on the first run as it downloads AI models...)")
+print(f"STAGE 0: Converting '{input_pdf}' to an image...")
 
 try:
-    # This runs Oemer just like if you typed 'oemer test_song.pdf' in the terminal
-    subprocess.run(["oemer", input_pdf], check=True)
+    # Open the PDF and grab the very first page (Page 0)
+    doc = fitz.open(input_pdf)
+    page = doc.load_page(0)
+    
+    # THE FIX: Use a scaling matrix instead of a blind DPI setting
+    # '2' means 2x zoom (which is usually a perfect ~150-200 DPI for standard PDFs)
+    zoom = 1
+    mat = fitz.Matrix(zoom, zoom)
+    
+    pix = page.get_pixmap(matrix=mat)
+    pix.save(temp_image)
+    print(f"Success! Created '{temp_image}' for the scanner.")
+except Exception as e:
+    print(f"\n[ERROR] Failed to read PDF. Make sure '{input_pdf}' exists!")
+    print(f"Details: {e}")
+    exit()
+
+# ==========================================
+# STAGE 1: THE VISION LAYER (Image -> MusicXML)
+# ==========================================
+print("-" * 30)
+print(f"STAGE 1: Scanning '{temp_image}' with Oemer...")
+print("Please wait. (Using CPU, you can ignore any red CUDA warnings...)")
+
+try:
+    subprocess.run(["oemer", temp_image], check=True)
     print("Scan Complete! MusicXML file generated.")
 except Exception as e:
-    print(f"\n[ERROR] The scanner failed. Make sure your PDF name is correct and Oemer is installed.")
-    print(f"Details: {e}")
+    print(f"\n[ERROR] The scanner failed.")
     exit()
 
 # ==========================================
@@ -31,17 +53,21 @@ except Exception as e:
 print("-" * 30)
 print(f"STAGE 2: Analyzing chords from '{output_xml}'...")
 
-s = converter.parse(output_xml)
-b_chords = s.chordify()
-first_measure_chords = []
+try:
+    s = converter.parse(output_xml)
+    b_chords = s.chordify()
+    first_measure_chords = []
 
-for c in b_chords.recurse().getElementsByClass(chord.Chord)[:10]:
-    name = c.pitchedCommonName
-    if name not in first_measure_chords:
-        first_measure_chords.append(name)
+    for c in b_chords.recurse().getElementsByClass(chord.Chord)[:10]:
+        name = c.pitchedCommonName
+        if name not in first_measure_chords:
+            first_measure_chords.append(name)
 
-chord_list = ", ".join(first_measure_chords)
-print(f"Detected Chords: {chord_list}")
+    chord_list = ", ".join(first_measure_chords)
+    print(f"Detected Chords: {chord_list}")
+except Exception as e:
+    print(f"\n[ERROR] Could not analyze the XML file. Oemer might have produced an empty scan.")
+    exit()
 
 # ==========================================
 # STAGE 3: THE INTELLIGENCE LAYER (Chords -> AI Tutor)
@@ -68,3 +94,7 @@ response = ollama.chat(model=model_to_use, messages=[
 
 print("\n--- PROFESSOR'S BREAKDOWN ---")
 print(response['message']['content'])
+
+# Optional: Clean up the temporary image so your folder stays tidy
+if os.path.exists(temp_image):
+    os.remove(temp_image)
