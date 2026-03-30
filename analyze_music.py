@@ -25,7 +25,8 @@ try:
     zoom = 1
     mat = fitz.Matrix(zoom, zoom)
     
-    pix = page.get_pixmap(matrix=mat)
+    # Force the image to be pure Grayscale to help Oemer's contrast
+    pix = page.get_pixmap(matrix=mat, colorspace=fitz.csGRAY)
     pix.save(temp_image)
     print(f"Success! Created '{temp_image}' for the scanner.")
 except Exception as e:
@@ -64,10 +65,26 @@ try:
             first_measure_chords.append(name)
 
     chord_list = ", ".join(first_measure_chords)
-    print(f"Detected Chords: {chord_list}")
+    print(f"\n[RAW VISION OUTPUT]: {chord_list}")
 except Exception as e:
     print(f"\n[ERROR] Could not analyze the XML file. Oemer might have produced an empty scan.")
     exit()
+
+# ==========================================
+# STAGE 2.5: HUMAN-IN-THE-LOOP INTERCEPT
+# ==========================================
+print("-" * 30)
+print("STAGE 2.5: The Sanity Check")
+print("OMR sometimes misreads complex PDF artifacts.")
+
+# This pauses the script and waits for you to type!
+user_correction = input("Press ENTER if the chords above look correct, or type the correct chords to override them: ")
+
+if user_correction.strip() != "":
+    chord_list = user_correction
+    print(f"Override accepted. Sending human-verified chords to AI: {chord_list}")
+else:
+    print("Looks good! Sending original OMR chords to AI.")
 
 # ==========================================
 # STAGE 3: THE INTELLIGENCE LAYER (Chords -> AI Tutor)
