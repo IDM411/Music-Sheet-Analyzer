@@ -1,0 +1,7 @@
+# Ignore generated files
+*.musicxml
+temp_page_1.png
+
+# Ignore Python cache
+__pycache__/
+*.pyc
