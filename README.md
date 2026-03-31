@@ -26,6 +26,11 @@ Make sure you have the following installed before running the project:
 - **MuseScore Studio**  
   Formerly known as MuseScore 4, used for rendering and playback
 
+
+📌 Notes
+
+This project is still evolving and is intended to grow into a more complete toolkit for score analysis, rendering, and AI-assisted music workflows.
+
 ### Required Python Libraries
 
 Install the dependencies with:
@@ -33,6 +38,4 @@ Install the dependencies with:
 ```bash
 pip install music21 python-dotenv
 
-📌 Notes
 
-This project is still evolving and is intended to grow into a more complete toolkit for score analysis, rendering, and AI-assisted music workflows.
