@@ -32,3 +32,7 @@ Install the dependencies with:
 
 ```bash
 pip install music21 python-dotenv
+
+📌 Notes
+
+This project is still evolving and is intended to grow into a more complete toolkit for score analysis, rendering, and AI-assisted music workflows.
